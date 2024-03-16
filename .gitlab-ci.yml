@@ -1,0 +1,31 @@
+include:
+  - project: "devops/ci-templates"
+    ref: master
+    file: "general_extends.yml"
+services:
+  - "*-*-*-*-*-*"
+stages:
+  - build
+  - test
+build:
+  extends: .build_docker
+e2e:chrome:
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CI_REGISTRY/rozhkov_m/autotests_jm_landing
+    - docker rm -f joymoney-landing-autotestes
+    - docker run -di --shm-size="2g" --name joymoney-landing-autotestes $CI_REGISTRY/rozhkov_m/autotests_jm_landing
+  script:
+    - echo "the project directory is - $CI_PROJECT_DIR"
+    - docker exec -i joymoney-landing-autotestes bash -c "pytest"
+    - mkdir screenshots
+    - docker cp joymoney-landing-autotestes:/home/qa/jm-landing/screenshots ./
+    - docker exec joymoney-landing-autotestes ls /home/qa/jm-landing/screenshots
+    - pwd
+    - ls
+    - ls screenshots
+  artifacts:
+    name: Скриншоты автотестов
+    paths:
+      - screenshots/
+    expire_in: 1 week
